@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>NexoAI - Agenda</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #202124;
+        }
+
+        header {
+            background: white;
+            padding: 18px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .campo {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+
+            border:
+                1px solid #ccc;
+
+            border-radius: 6px;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        button {
+            border: none;
+            border-radius: 6px;
+
+            padding:
+                10px 18px;
+
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .principal {
+            background: #1769e0;
+            color: white;
+        }
+
+        .principal:hover {
+            background: #1259c3;
+        }
+
+        .secundario {
+            background: #e5e7eb;
+        }
+
+        .secundario:hover {
+            background: #d1d5db;
+        }
+
+        .logout {
+            background: #ef4444;
+            color: white;
+        }
+
+        .logout:hover {
+            background: #dc2626;
+        }
+
+        .evento {
+            padding: 15px;
+
+            border-left:
+                4px solid #1769e0;
+
+            background: #f8fafc;
+
+            margin-bottom: 12px;
+        }
+
+        .advertencia {
+            display: none;
+
+            padding: 18px;
+            margin-top: 20px;
+
+            background: #fff4ce;
+
+            border:
+                1px solid #e8b931;
+
+            border-radius: 8px;
+        }
+
+        .confirmacion {
+            display: none;
+
+            padding: 18px;
+            margin-top: 20px;
+
+            background: #e8f1ff;
+
+            border:
+                1px solid #1769e0;
+
+            border-radius: 8px;
+        }
+
+        .mensaje {
+            display: none;
+
+            padding: 15px;
+            margin-bottom: 20px;
+
+            border-radius: 8px;
+        }
+
+        .exito {
+            background: #dcfce7;
+        }
+
+        .error {
+            background: #fee2e2;
+        }
+
+        .acciones {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>NexoAI</h1>
+
+    <form
+        action="/logout"
+        method="post"
+    >
+
+        <input
+            type="hidden"
+            name="_csrf"
+            th:value="${_csrf.token}"
+        >
+
+        <button
+            class="logout"
+            type="submit"
+        >
+            Cerrar sesión
+        </button>
+
+    </form>
+
+</header>
+
+
+<main>
+
+    <!-- MENSAJES -->
+
+    <div
+        id="mensaje"
+        class="mensaje"
+    ></div>
+
+
+    <!-- AGENDA -->
+
+    <section class="card">
+
+        <h2>
+            Agenda Personal
+        </h2>
+
+        <div id="listaEventos">
+
+            <p>
+                Cargando eventos...
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- REGISTRO -->
+
+    <section class="card">
+
+        <h2>
+            Registrar nuevo evento
+        </h2>
+
+
+        <form id="eventoForm">
+
+
+            <div class="campo">
+
+                <label for="titulo">
+                    Título *
+                </label>
+
+                <input
+                    id="titulo"
+                    type="text"
+                    required
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label for="descripcion">
+                    Descripción
+                </label>
+
+                <textarea
+                    id="descripcion"
+                    rows="3"
+                ></textarea>
+
+            </div>
+
+
+            <div class="campo">
+
+                <label for="inicio">
+                    Inicio *
+                </label>
+
+                <input
+                    id="inicio"
+                    type="datetime-local"
+                    required
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label for="fin">
+                    Finalización *
+                </label>
+
+                <input
+                    id="fin"
+                    type="datetime-local"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                class="principal"
+                type="submit"
+            >
+
+                Evaluar evento
+
+            </button>
+
+        </form>
+
+
+        <!-- ADVERTENCIA DE SUPERPOSICION -->
+
+        <div
+            id="advertencia"
+            class="advertencia"
+        >
+
+            <h3>
+                ⚠ Conflicto de horario
+            </h3>
+
+            <p id="textoConflicto"></p>
+
+        </div>
+
+
+        <!-- CONFIRMACION -->
+
+        <div
+            id="confirmacion"
+            class="confirmacion"
+        >
+
+            <h3>
+                Confirmar registro
+            </h3>
+
+            <p>
+                Revisa la información antes de
+                registrar definitivamente el evento.
+            </p>
+
+            <div id="resumenEvento"></div>
+
+
+            <div class="acciones">
+
+                <button
+                    class="secundario"
+                    type="button"
+                    onclick="cancelarRegistro()"
+                >
+
+                    Cancelar
+
+                </button>
+
+
+                <button
+                    class="principal"
+                    type="button"
+                    onclick="confirmarRegistro()"
+                >
+
+                    Confirmar registro
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script>
+
+    // Token de la propuesta que está
+    // esperando confirmación.
+    let tokenActual = null;
+
+
+    // Token CSRF generado por Spring Security.
+    const csrfToken =
+        document.querySelector(
+            'input[name="_csrf"]'
+        ).value;
+
+
+    // =====================================================
+    // CARGAR EVENTOS
+    // =====================================================
+
+    async function cargarEventos() {
+
+        try {
+
+            const respuesta =
+                await fetch(
+                    '/api/eventos'
+                );
+
+
+            if (!respuesta.ok) {
+
+                mostrarMensaje(
+                    'No fue posible cargar la agenda.',
+                    false
+                );
+
+                return;
+            }
+
+
+            const eventos =
+                await respuesta.json();
+
+
+            const contenedor =
+                document.getElementById(
+                    'listaEventos'
+                );
+
+
+            contenedor.innerHTML = '';
+
+
+            if (eventos.length === 0) {
+
+                contenedor.innerHTML =
+                    '<p>No tienes eventos registrados.</p>';
+
+                return;
+            }
+
+
+            eventos.forEach(
+                evento => {
+
+                    const elemento =
+                        document.createElement(
+                            'div'
+                        );
+
+
+                    elemento.className =
+                        'evento';
+
+
+                    elemento.innerHTML = `
+
+                        <strong>
+                            ${evento.titulo}
+                        </strong>
+
+                        <br>
+
+                        ${formatearFecha(
+                            evento.inicio
+                        )}
+
+                        -
+
+                        ${formatearFecha(
+                            evento.fin
+                        )}
+                    `;
+
+
+                    contenedor.appendChild(
+                        elemento
+                    );
+
+                }
+            );
+
+        } catch (error) {
+
+            mostrarMensaje(
+                'Ocurrió un error al cargar los eventos.',
+                false
+            );
+        }
+    }
+
+
+    // =====================================================
+    // EVALUAR EVENTO
+    // =====================================================
+
+    document
+        .getElementById(
+            'eventoForm'
+        )
+        .addEventListener(
+            'submit',
+            async function(event) {
+
+                event.preventDefault();
+
+                ocultarMensajes();
+
+
+                const inicio =
+                    document.getElementById(
+                        'inicio'
+                    ).value;
+
+
+                const fin =
+                    document.getElementById(
+                        'fin'
+                    ).value;
+
+
+                const datos = {
+
+                    titulo:
+                        document.getElementById(
+                            'titulo'
+                        ).value,
+
+                    descripcion:
+                        document.getElementById(
+                            'descripcion'
+                        ).value,
+
+                    inicio:
+                        convertirFecha(inicio),
+
+                    fin:
+                        convertirFecha(fin)
+
+                };
+
+
+                try {
+
+                    const respuesta =
+                        await fetch(
+                            '/api/eventos/evaluar',
+                            {
+
+                                method: 'POST',
+
+                                headers: {
+
+                                    'Content-Type':
+                                        'application/json',
+
+                                    'X-CSRF-TOKEN':
+                                        csrfToken
+
+                                },
+
+                                body:
+                                    JSON.stringify(
+                                        datos
+                                    )
+
+                            }
+                        );
+
+
+                    const resultado =
+                        await respuesta.json();
+
+
+                    if (!respuesta.ok) {
+
+                        mostrarMensaje(
+                            resultado.mensaje,
+                            false
+                        );
+
+                        return;
+                    }
+
+
+                    tokenActual =
+                        resultado.token;
+
+
+                    // REG-04:
+                    // si existe superposición,
+                    // se advierte pero NO se bloquea.
+                    if (
+                        resultado.hayConflicto
+                    ) {
+
+                        document
+                            .getElementById(
+                                'advertencia'
+                            )
+                            .style.display =
+                                'block';
+
+
+                        document
+                            .getElementById(
+                                'textoConflicto'
+                            )
+                            .innerText =
+
+                                'Este evento se superpone con: '
+                                +
+                                resultado
+                                    .conflictos
+                                    .join(', ');
+
+                    }
+
+
+                    document
+                        .getElementById(
+                            'resumenEvento'
+                        )
+                        .innerHTML = `
+
+                            <strong>
+                                ${datos.titulo}
+                            </strong>
+
+                            <br><br>
+
+                            Inicio:
+                            ${formatearFecha(
+                                datos.inicio
+                            )}
+
+                            <br>
+
+                            Fin:
+                            ${formatearFecha(
+                                datos.fin
+                            )}
+
+                        `;
+
+
+                    document
+                        .getElementById(
+                            'confirmacion'
+                        )
+                        .style.display =
+                            'block';
+
+
+                } catch (error) {
+
+                    mostrarMensaje(
+                        'No fue posible evaluar el evento.',
+                        false
+                    );
+                }
+
+            }
+        );
+
+
+    // =====================================================
+    // CONFIRMAR REGISTRO
+    // =====================================================
+
+    async function confirmarRegistro() {
+
+        if (!tokenActual) {
+            return;
+        }
+
+
+        try {
+
+            const respuesta =
+                await fetch(
+
+                    '/api/eventos/confirmar/'
+                    + tokenActual,
+
+                    {
+
+                        method: 'POST',
+
+                        headers: {
+
+                            'X-CSRF-TOKEN':
+                                csrfToken
+
+                        }
+
+                    }
+                );
+
+
+            const resultado =
+                await respuesta.json();
+
+
+            if (!respuesta.ok) {
+
+                mostrarMensaje(
+                    resultado.mensaje,
+                    false
+                );
+
+                return;
+            }
+
+
+            mostrarMensaje(
+                resultado.mensaje,
+                true
+            );
+
+
+            document
+                .getElementById(
+                    'eventoForm'
+                )
+                .reset();
+
+
+            tokenActual = null;
+
+
+            document
+                .getElementById(
+                    'advertencia'
+                )
+                .style.display =
+                    'none';
+
+
+            document
+                .getElementById(
+                    'confirmacion'
+                )
+                .style.display =
+                    'none';
+
+
+            cargarEventos();
+
+
+        } catch (error) {
+
+            mostrarMensaje(
+                'No fue posible registrar el evento.',
+                false
+            );
+        }
+    }
+
+
+    // =====================================================
+    // CANCELAR REGISTRO
+    // =====================================================
+
+    async function cancelarRegistro() {
+
+        if (!tokenActual) {
+            return;
+        }
+
+
+        try {
+
+            const respuesta =
+                await fetch(
+
+                    '/api/eventos/cancelar/'
+                    + tokenActual,
+
+                    {
+
+                        method: 'POST',
+
+                        headers: {
+
+                            'X-CSRF-TOKEN':
+                                csrfToken
+
+                        }
+
+                    }
+                );
+
+
+            const resultado =
+                await respuesta.json();
+
+
+            if (!respuesta.ok) {
+
+                mostrarMensaje(
+                    resultado.mensaje,
+                    false
+                );
+
+                return;
+            }
+
+
+            // El token deja de ser válido
+            // también en el navegador.
+            tokenActual = null;
+
+
+            document
+                .getElementById(
+                    'advertencia'
+                )
+                .style.display =
+                    'none';
+
+
+            document
+                .getElementById(
+                    'confirmacion'
+                )
+                .style.display =
+                    'none';
+
+
+            mostrarMensaje(
+                resultado.mensaje,
+                false
+            );
+
+
+        } catch (error) {
+
+            mostrarMensaje(
+                'No fue posible cancelar el registro.',
+                false
+            );
+        }
+    }
+
+
+    // =====================================================
+    // CONVERSIÓN DE FECHAS
+    // =====================================================
+
+    function convertirFecha(valor) {
+
+        if (!valor) {
+            return null;
+        }
+
+
+        const fecha =
+            new Date(valor);
+
+
+        return fecha.toISOString();
+    }
+
+
+    function formatearFecha(valor) {
+
+        return new Date(valor)
+            .toLocaleString(
+                'es-PE',
+                {
+
+                    dateStyle:
+                        'medium',
+
+                    timeStyle:
+                        'short'
+
+                }
+            );
+    }
+
+
+    // =====================================================
+    // MENSAJES
+    // =====================================================
+
+    function mostrarMensaje(
+        texto,
+        exitoso) {
+
+        const mensaje =
+            document.getElementById(
+                'mensaje'
+            );
+
+
+        mensaje.innerText =
+            texto;
+
+
+        mensaje.className =
+            exitoso
+                ? 'mensaje exito'
+                : 'mensaje error';
+
+
+        mensaje.style.display =
+            'block';
+    }
+
+
+    function ocultarMensajes() {
+
+        document
+            .getElementById(
+                'mensaje'
+            )
+            .style.display =
+                'none';
+
+
+        document
+            .getElementById(
+                'advertencia'
+            )
+            .style.display =
+                'none';
+
+
+        document
+            .getElementById(
+                'confirmacion'
+            )
+            .style.display =
+                'none';
+    }
+
+
+    // =====================================================
+    // INICIO
+    // =====================================================
+
+    cargarEventos();
+
+</script>
+
+
+</body>
+
+</html>
